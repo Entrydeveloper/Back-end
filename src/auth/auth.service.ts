@@ -1,68 +1,58 @@
 /* eslint-disable prettier/prettier */
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { UsersService } from 'src/users/users.service';
-import { LoginDto } from './dto/Login.Dto';
-import * as bcrypt from 'bcryptjs';
-import { LoginAdminDto } from './dto/Login.Admin.Dto';
-import { AdminService } from 'src/admin/admin.service';
+import { Injectable, InternalServerErrorException, NotAcceptableException, UnauthorizedException } from '@nestjs/common'
+import { JsonWebTokenError, JwtService, TokenExpiredError } from '@nestjs/jwt'
+import { UsersService } from 'src/users/users.service'
+import { LoginDto } from './dto/Login.Dto'
+import * as bcrypt from 'bcryptjs'
 
 // 인증
 @Injectable()
 export class AuthService {
   constructor(
     private readonly jwt: JwtService,
-    private readonly userService: UsersService,
-    private readonly adminService: AdminService,
+    private readonly userService: UsersService
   ) {}
 
-  async sinIn(dto: LoginDto) {
-    const { username, password } = dto;
+  public async sinIn(dto: LoginDto): Promise<{ success: boolean; token: string }> {
+    const user = await this.userService.getOneName(dto.username)
 
-    const user = await this.userService.getOneName(dto.username);
-   
     if (!user || undefined) {
-      throw new UnauthorizedException(
-        `Invalid username ${username}`,
-      );
+      throw new UnauthorizedException({
+        success: false,
+        message: `Invalid username : ${dto.username}`
+      })
     }
 
-    const isPasswordValidated = await bcrypt.compare(password, user.password);
+    const isPasswordValidated = await bcrypt.compare(dto.password, user.password)
 
     if (!isPasswordValidated || undefined) {
-      throw new UnauthorizedException(`Invalid password`);
+      throw new UnauthorizedException({
+        success: false,
+        message: `Invalid password`
+      })
     }
 
-    const payload = { username: username };
-    const token = this.jwt.sign(payload);
+    const payload =  user.id 
+    const token = this.jwt.sign({ payload })
 
     return {
-      token: token,
-    };
+      success: true,
+      token: token
+    }
   }
 
-  async adminSinIn(dto: LoginAdminDto) {
-    const { adminName, password } = dto; 
+  public verifyToken(token: string) {
+    try {
+      const userId = this.jwt.verify(token) as { id: number }
+      return userId
+    } catch (e) {
+      if (e instanceof JsonWebTokenError)
+        throw new NotAcceptableException('TOKEN_MALFORMED')
 
-    const admin = await this.adminService.gatOneAdminName(dto.adminName);
+      if (e instanceof TokenExpiredError)
+        throw new UnauthorizedException('TOKEN_EXPIRED')
 
-    if(!admin || undefined) {
-      throw new UnauthorizedException(
-        `Invalid admin ${adminName}`,
-      );
+      throw new InternalServerErrorException('JWT_SERVICE_ERROR')
     }
-    const isPasswordValidated = await bcrypt.compare(password, admin.password);
-
-    if (!isPasswordValidated || undefined) {
-      throw new UnauthorizedException(`Invalid password`);
-    }
-
-    const payload = { adminName: adminName};
-    const token = this.jwt.sign(payload);
-
-    return {
-      token: token,
-    };
-
   }
 }

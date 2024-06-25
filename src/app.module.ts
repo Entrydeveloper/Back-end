@@ -1,16 +1,16 @@
 /* eslint-disable prettier/prettier */
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { UsersModule } from './users/users.module';
-import { ChatsModule } from './chats/chats.module';
-import { AdminModule } from './admin/admin.module';
-import { ConfigurationModule } from './configuration/configuration.module';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AuthModule } from './auth/auth.module';
-import { CommentModule } from './comment/comment.module';
-import { AdminCommentModule } from './admin-comment/admin-comment.module';
+import { Module } from '@nestjs/common'
+import { AppController } from './app.controller'
+import { AppService } from './app.service'
+import { UsersModule } from './users/users.module'
+import { ChatsModule } from './chats/chats.module'
+import { ConfigurationModule } from './configuration/configuration.module'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { ConfigModule, ConfigService } from '@nestjs/config'
+import { AuthModule } from './auth/auth.module'
+import { CommentModule } from './comment/comment.module'
+import { AdminCommentModule } from './admin-comment/admin-comment.module'
+import { EventModule } from './event/event.module'
 
 @Module({
   imports: [
@@ -25,18 +25,18 @@ import { AdminCommentModule } from './admin-comment/admin-comment.module';
         password: ConfigService.get('DB_PASSWORD'),
         database: ConfigService.get('DB_SCHEMA'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: ConfigService.get<boolean>('TYPEORM_SYBCHRONIZE'),
-      }),
+        synchronize: ConfigService.get<boolean>('TYPEORM_SYBCHRONIZE')
+      })
     }),
     UsersModule,
     ChatsModule,
-    AdminModule,
     ConfigurationModule,
     AuthModule,
     CommentModule,
     AdminCommentModule,
+    EventModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, AuthModule]
 })
 export class AppModule {}

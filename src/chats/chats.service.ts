@@ -1,28 +1,61 @@
 /* eslint-disable prettier/prettier */
-import { Injectable } from '@nestjs/common';
-import { CreateChatDto } from './dto/create-chat.dto';
-import { UpdateChatDto } from './dto/update-chat.dto';
+import { Injectable, NotFoundException } from '@nestjs/common'
+import { CreateChatDto } from './dto/create-chat.dto'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Chat } from './entities/chat.entity'
+import { Repository } from 'typeorm'
+import { UsersService } from 'src/users/users.service'
 
-// 익명 채팅 
+// 익명 채팅
 @Injectable()
 export class ChatsService {
-  create(createChatDto: CreateChatDto) {
-    return 'This action adds a new chat';
+  constructor(
+    @InjectRepository(Chat)
+    private readonly chat: Repository<Chat>,
+    private readonly userService: UsersService
+  ) {}
+
+  public async createChat(dto: CreateChatDto): Promise<Chat> {
+    for (let i = 0; i < dto.userId.length; i++) {
+      await this.userService.getOneUser(dto.userId[i])
+    }
+    const chat = await this.chat.save({
+      users: dto.userId.map((id) => ({ id }))
+    })
+
+    return this.chat.findOne({
+      where: {
+        id: chat.id
+      }
+    })
   }
 
-  findAll() {
-    return `This action returns all chats`;
+  public async checkIfChatExists(chatId: number): Promise<boolean> {
+    const exists = await this.chat.exists({
+      where: {
+        id: chatId
+      }
+    })
+
+    return exists
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} chat`;
+  public findAllChat(): Promise<Chat[]> {
+    return this.chat.find()
   }
 
-  update(id: number, updateChatDto: UpdateChatDto) {
-    return `This action updates a #${id} chat`;
+  public async findOneChat(id: number): Promise<Chat> {
+    return await this.chat.findOneBy({ id })
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} chat`;
+  public async deleteChat(id: number): Promise<void> {
+    const resuit = await this.chat.delete({ id })
+
+    if (resuit.affected === 0) {
+      throw new NotFoundException({
+        success: false,
+        message: `Can't find Chat with ID : ${id}`
+      })
+    }
   }
 }

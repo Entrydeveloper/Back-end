@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   POSTGRES_DB:
     image: postgres
@@ -14,8 +12,9 @@ services:
       POSTGRES_DB: cap
   
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: silofn/cap
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     ports:
       - 3000:3000
